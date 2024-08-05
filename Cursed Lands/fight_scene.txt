@@ -1,0 +1,271 @@
+*label fight
+*params enem_guard1 enem_guard2 enem_guard3 enem_health enem_damage enem_crit_chance
+
+*temp brace "guard1"
+*temp enem_brace "enem_guard1"
+
+*temp attack "enem_guard1"
+*temp enem_attack "guard1"
+
+*temp parry_bonus 0
+*temp attack_strength 0
+*temp crit_bonus 1
+*temp enem_crit_bonus 1
+
+*temp damage_output 0
+*temp player_damage_output 0
+
+*temp foresight false
+*temp foresight_chance 0
+*temp heaven_blade false
+*temp heaven_blade_bonus 1.25
+*temp iron_body false
+*temp iron_body_bonus 0.75
+*temp incantation_active false
+
+*label fight_seq
+PLAYER ATTACK ROUND
+*rand crit_bonus 1 100
+*if crit_bonus <= crit_chance
+    *rand crit_bonus 120 140
+    *set crit_bonus / 100
+*if crit_bonus > crit_chance
+    *set crit_bonus 1
+
+Health: ${health}
+*line_break
+Enemy Health: ${enem_health}
+*line_break
+Stamina: ${stamina}
+
+*fake_choice
+    *selectable_if (stamina > 20) #Light Melee Attack
+        *rand attack_strength 100 115
+        *set attack_strength / 100
+        *set stamina - 20
+        *gosub attack_round
+    *selectable_if (stamina > 40) #Heavy Melee Attack
+        *rand attack_strength 150 175
+        *set attack_strength / 100
+        *set stamina - 40
+        *gosub attack_round
+    *selectable_if (not(incantation_active)) #Incantations
+        *goto incantation
+    #Rest
+        *set stamina + 30
+*if (enem_health <= 0)
+    *finish
+PLAYER DEFENSE ROUND
+
+*rand enem_crit_bonus 1 100
+*if enem_crit_bonus <= enem_crit_chance
+    *rand enem_crit_bonus 100 140
+    *set enem_crit_bonus / 100
+*if enem_crit_bonus > enem_crit_chance
+    *set enem_crit_bonus 1
+
+*rand enem_attack 1 3
+Health: ${health}
+*line_break
+Enemy Health: ${enem_health}
+*line_break
+Stamina: ${stamina}
+
+*rand foresight_chance 1 100
+*if ((foresight) and (foresight_chance <= 33))
+    You have a strange feeling that the enemy will attack your Guard ${enem_attack}.
+
+Choose which of your own guards to protect
+*fake_choice
+    *if guard1 <= 0
+        #Guard 1: BROKEN
+            *set brace "guard1"
+    *if guard1 > 0
+        #Guard 1: ${guard1}% 
+            *set brace "guard1"
+    *if guard2 <= 0
+        #Guard 2: BROKEN
+            *set brace "guard2"
+    *if guard2 > 0
+        #Guard 2: ${guard2}% 
+            *set brace "guard2"
+    *if guard3 <= 0
+        #Guard 3: BROKEN
+            *set brace "guard3"
+    *if guard3 > 0
+        #Guard 3: ${guard3}% 
+            *set brace "guard3"
+
+*set enem_attack ("guard"&"${enem_attack}")
+
+*if ((enem_attack = brace) and ({brace} <= 0))
+    *if enem_crit_bonus > 1
+        CRITICAL!
+    *if enem_crit_bonus <= 1
+        HIT!
+     
+    You parried the enemy, but their attack still slightly lands due to a broken guard.
+    *rand parry_bonus 50 75
+    *set parry_bonus / 100
+    *gosub damage_calc enem_damage 1 parry_bonus enem_crit_bonus
+    *set health - damage_output
+    
+    *if {health} < 0
+        *set health 0
+    
+    You take ${damage_output} damage to the your health, reducing it to ${health}.
+*if ((enem_attack = brace) and ({brace} > 0))
+    PARRIED! 
+    
+    You parried the enemy and negated any damage to your health and guard.
+*if ((enem_attack != brace) and ({enem_attack} < 0))
+    *if enem_crit_bonus > 1
+        CRITICAL!
+    *if enem_crit_bonus <= 1
+        HIT!
+    *gosub damage_calc enem_damage 1 1 enem_crit_bonus
+    *set health - damage_output
+    
+    *if {health} < 0
+        *set health 0
+    
+    The enemy attacked a broken guard and dealt ${damage_output} damage to the your health, reducing it to ${health}
+*if ((enem_attack != brace) and ({enem_attack} > 0))
+    *if enem_crit_bonus > 1
+        CRITICAL!
+    *if enem_crit_bonus <= 1
+        HIT!
+    
+    *gosub damage_calc enem_damage 1 1 enem_crit_bonus
+    *setref enem_attack - damage_output
+    *if {enem_attack} < 0
+        *setref enem_attack 0
+    
+    The enemy attacked an unbraced guard and dealt ${damage_output} damage to the your Guard ${enem_attack#6}, reducing it to ${{enem_attack}}
+
+*page_break
+
+*if (health <= 0)
+    *set is_alive false
+    *finish
+*if ((health > 0) and (enem_health > 0))
+    *goto fight_seq
+
+*label incantation
+Choose an incantation carefully, activating more than one will lead to inevitable death.
+
+*fake_choice
+    #Foresight: Occasionally predict the moves of your opponent
+        [i]"Oculos Dei Mihi Praebe"[/i]
+        *set foresight true
+    #Heavenly Blade: Increase all damage dealt
+        [i]"Acuēte me saxis caelīs mucrone"[/i]
+        *set heaven_blade true
+    #Iron Body: Reduce all recieved damage
+        [i]"Imple utrasque partes virtute angelorum tuorum"[/i]
+        *set iron_body true
+*set incantation_active true
+*page_break
+*goto fight_seq
+
+*label attack_round
+PLAYER ATTACK ROUND
+*rand enem_brace 1 3
+
+Health: ${health}
+*line_break
+Enemy Health: ${enem_health}
+*line_break
+Stamina: ${stamina}
+
+*rand foresight_chance 1 100
+*if ((foresight) and (foresight_chance <= 33))
+    You have a strange feeling that the enemy will try to defend their Guard ${enem_brace}.
+    
+Choose which of the enemy's guards to attack
+*fake_choice
+    *if enem_guard1 <= 0
+        #Enemy Guard 1: BROKEN
+            *set attack "enem_guard1"
+    *if enem_guard1 > 0
+        #Enemy Guard 1: ${enem_guard1}% 
+            *set attack "enem_guard1"
+    *if enem_guard2 <= 0
+        #Enemy Guard 2: BROKEN
+            *set attack "enem_guard2"
+    *if enem_guard2 > 0
+        #Enemy Guard 2: ${enem_guard2}% 
+            *set attack "enem_guard2"
+    *if enem_guard3 <= 0
+        #Enemy Guard 3: BROKEN
+            *set attack "enem_guard3"
+    *if enem_guard3 > 0
+        #Enemy Guard 3: ${enem_guard3}% 
+            *set attack "enem_guard3"
+
+*set enem_brace ("enem_guard"&"${enem_brace}")
+
+*if ((attack = enem_brace) and ({enem_brace} <= 0))
+    *if crit_bonus > 1
+        CRITICAL!
+    
+    *if crit_bonus <= 1
+        HIT!
+    
+    You were parried, but your attack still slightly lands due to a broken guard.
+    
+    *rand parry_bonus 50 75
+    *set parry_bonus / 100
+    
+    *gosub damage_calc damage attack_strength parry_bonus crit_bonus
+    
+    *set enem_health - player_damage_output 
+    *if {enem_health} < 0
+        *set enem_health 0
+    You deal ${player_damage_output} damage to the enemy's health, reducing it to ${enem_health}.
+*if ((attack = enem_brace) and ({enem_brace} > 0))
+    PARRIED!
+    
+    You were parried and couldn't damage the guard nor the enemy's health.
+    
+    You lost stamina in your struggle
+    *set stamina - round(10*attack_strength)
+    
+    *if stamina < 0
+        *set stamina 0
+*if ((attack != enem_brace) and ({attack} <= 0))
+    *if crit_bonus > 1
+        CRITICAL!
+    *if crit_bonus <= 1
+        HIT!
+    
+    *gosub damage_calc damage attack_strength 1 crit_bonus
+    *set enem_health - player_damage_output
+    *if {enem_health} < 0
+        *set enem_health 0
+    
+    You attacked a broken guard and dealt ${player_damage_output} damage to the enemy's health , reducing it to ${enem_health}
+*if ((attack != enem_brace) and ({attack} > 0))
+    *if crit_bonus > 1
+        CRITICAL!
+    *if crit_bonus <= 1
+        HIT!
+    
+    *gosub damage_calc damage attack_strength 1 crit_bonus
+    *setref attack - player_damage_output
+    *if {attack} < 0
+        *setref attack 0
+    
+    You attacked an unbraced guard and dealt ${player_damage_output} damage to the enemy's Guard ${attack#11}, reducing it to ${{attack}}
+*page_break
+*return
+
+*label damage_calc
+*params base_damage attack_type_bonus defense_bonus crit_bonus 
+*set damage_output round((base_damage * attack_type_bonus) * (defense_bonus * crit_bonus))
+*set player_damage_output damage_output
+*if (iron_body)
+    *set damage_output round(damage_output*iron_body_bonus)
+*if (heaven_blade)
+    *set player_damage_output round(player_damage_output*heaven_blade_bonus)
+*return

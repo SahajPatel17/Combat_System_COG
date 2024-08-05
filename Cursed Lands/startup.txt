@@ -1,0 +1,16 @@
+*title Cursed Lands
+*author Sahaj Patel
+
+*create name "NAME"
+*create guard1 100
+*create guard2 100
+*create guard3 100
+*create health 100
+*create damage 25
+*create crit_chance 5
+*create stamina 100
+*create is_alive true 
+
+*goto_scene fight_scene fight 100 100 100 100 25 5
+
+*finish
